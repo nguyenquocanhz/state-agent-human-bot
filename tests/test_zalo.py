@@ -86,5 +86,59 @@ class ZaloOaTest(unittest.TestCase):
             "event_name": "user_send_image", "sender": {"id": "42"}, "message": {}}))
 
 
+
+class ImageInputTest(unittest.IsolatedAsyncioTestCase):
+    """Anh dinh kem phai di het duong tu Inbound -> LLM."""
+
+    async def test_images_reach_the_llm(self):
+        import asyncio as aio
+        from humanbot.clock import Clock
+        from humanbot.config import load_persona
+        from humanbot.llm.mock import MockLlm
+        from humanbot.machine import ConversationMachine, Inbound
+        from humanbot.rng import Rng
+        from humanbot.states import S
+        from humanbot.store import SessionStore
+        from tests.test_core import FakeAdapter
+
+        llm = MockLlm(delay_ms=5, reply="de minh soi")
+        store = SessionStore(path="data/test-img.json", flush_after=60)
+        store.data = {}
+        m = ConversationMachine("c1", adapter=FakeAdapter(), llm=llm,
+                                persona=load_persona("config/persona.mainboard.json"),
+                                store=store, rng=Rng(1), clock=Clock(time_scale=0.002))
+        m.push(Inbound(text="soi ho em", msg_id=1, images=["data/test-board.png"]))
+        for _ in range(500):
+            await aio.sleep(0.01)
+            if m.state is S.IDLE and (m._task is None or m._task.done()):
+                break
+        self.assertEqual(llm.images[-1], ["data/test-board.png"])
+        self.assertIn("so_anh_dinh_kem=1", llm.calls[-1])
+
+
+class DiagramChunkTest(unittest.TestCase):
+    """So do ASCII phai giu nguyen xuong dong va khong bi cat."""
+
+    DIAGRAM = ("Chuoi nguon:\n\nBATT+ 3.9V\n   |\n  [F1]\n   |\n PP_VDD_MAIN\n\n"
+               "Do 2 dau F1 xem con thong khong.")
+
+    def test_diagram_survives_intact(self):
+        from humanbot.chunker import chunk_reply, looks_like_diagram
+        from humanbot.config import load_persona
+        from humanbot.rng import Rng
+        persona = load_persona("config/persona.mainboard.json")
+        for seed in range(20):
+            chunks = chunk_reply(self.DIAGRAM, persona=persona, rng=Rng(seed))
+            drawn = [c for c in chunks if looks_like_diagram(c)]
+            self.assertEqual(len(drawn), 1, f"seed {seed}: so do bi vo")
+            self.assertIn("[F1]", drawn[0])
+            self.assertEqual(drawn[0].count("\n"), 4)   # giu du 5 dong
+
+    def test_plain_prose_is_not_mistaken_for_a_diagram(self):
+        from humanbot.chunker import looks_like_diagram
+        self.assertFalse(looks_like_diagram("Cau mot day.\nCau hai - co gach ngang."))
+        self.assertFalse(looks_like_diagram("Mot dong duy nhat | co gach dung"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

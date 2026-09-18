@@ -17,6 +17,27 @@ _FENCE = re.compile(r"```[\s\S]*?```")
 _SENTENCE = re.compile(r"(?<=[.!?…])(?<!\d\.)\s+|\n+")
 
 
+#: Ky tu ve khung / mui ten - dau hieu cua mot so do ASCII.
+_BOX_CHARS = set("─│┌┐└┘├┤┬┴┼━┃╔╗╚╝╠╣╦╩╬→←↑↓▲▼")
+
+
+def looks_like_diagram(block: str) -> bool:
+    """Doan nay la so do ve bang ky tu?
+
+    So do phai duoc giu NGUYEN VEN: khong gop khoang trang, khong cat giua chung.
+    Nhan dien bang ky tu ve khung, hoac bang cac dong thut dau chua '|'.
+    """
+    lines = block.splitlines()
+    if len(lines) < 2:
+        return False
+    if any(ch in _BOX_CHARS for ch in block):
+        return True
+    # Kieu ve bang ASCII thuan: it nhat 2 dong co '|' hoac khung '+--'.
+    # Dieu kien chat de van xuoi co dau gach ngang khong bi nham la so do.
+    drawn = sum(1 for ln in lines if "|" in ln or ln.strip().startswith("+-"))
+    return drawn >= 2
+
+
 def split_fences(text: str) -> List[dict]:
     """Tach thanh cac khoi {type: text|code}."""
     out, last = [], 0
@@ -64,8 +85,15 @@ def chunk_reply(reply: str, *, persona: dict, rng: Rng) -> List[str]:
             chunks.append((b["text"].strip(), True))
             continue
 
-        paras = [re.sub(r"\s+", " ", p).strip() for p in re.split(r"\n{2,}", b["text"])]
-        for p in [p for p in paras if p]:
+        for raw in re.split(r"\n{2,}", b["text"]):
+            if not raw.strip():
+                continue
+            if looks_like_diagram(raw):
+                # So do: giu nguyen xuong dong va thut dau, va khong bao gio cat.
+                chunks.append((raw.strip("\n"), True))
+                continue
+
+            p = re.sub(r"\s+", " ", raw).strip()
             if len(p) <= cfg["splitThreshold"] or not rng.chance(cfg["splitProb"]):
                 chunks.append((p, True))
                 continue
@@ -77,7 +105,9 @@ def chunk_reply(reply: str, *, persona: dict, rng: Rng) -> List[str]:
     # Gop manh vun (<25 ky tu) do viec cat cau tao ra - khong dung vao diem ngat cung.
     merged: List[str] = []
     for text, hard in chunks:
-        if merged and not hard and len(text) < 25 and not merged[-1].startswith("```"):
+        prev_atomic = bool(merged) and (merged[-1].startswith("```")
+                                        or looks_like_diagram(merged[-1]))
+        if merged and not hard and len(text) < 25 and not prev_atomic:
             merged[-1] = merged[-1] + " " + text
         else:
             merged.append(text)

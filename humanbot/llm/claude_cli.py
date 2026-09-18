@@ -100,7 +100,14 @@ class ClaudeCli:
         return data
 
     async def complete(self, *, prompt: str, system: str | None = None,
-                       session_id: str | None = None) -> LlmReply:
+                       session_id: str | None = None, images: Sequence[str] = ()) -> LlmReply:
+        if images:
+            # claude-cli doc anh bang Read tool, chi can dua duong dan vao prompt.
+            # Da kiem chung: che do --restricted van giu Read nen anh van xem duoc.
+            listed = "\n".join(f"- {p}" for p in images)
+            prompt = (f"{prompt}\n\n<anh_dinh_kem>Doi phuong gui kem anh. Doc tung file sau "
+                      f"bang Read tool roi moi tra loi:\n{listed}\n</anh_dinh_kem>")
+
         async with self._sem:
             try:
                 data = await self._run(self._argv(system=system, session_id=session_id), prompt)

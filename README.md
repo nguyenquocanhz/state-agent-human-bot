@@ -66,7 +66,7 @@ Ba bản mẫu có sẵn để tham khảo cách chỉnh:
 | `persona.default.json` | An | trợ lý trung tính, ngắn gọn |
 | `persona.sales.json` | Linh | tư vấn bán hàng, thân mật, hay hỏi lại |
 | `persona.friend.json` | Mint | bạn thân, gõ nhanh 58 wpm, sai chính tả nhiều, thức tới 2h sáng |
-| `persona.mainboard.json` | Tú | thợ sửa main 15 năm — ví dụ persona **có chuyên môn thật** |
+| `persona.mainboard.json` | Tú | thợ sửa main 15 năm — soi ảnh board, vẽ sơ đồ đường nguồn |
 
 Phần nội dung — quyết định bot **nói gì**:
 
@@ -104,6 +104,49 @@ Phần nhịp — quyết định bot **nhắn như thế nào**:
 | `sleep.startHour/endHour` | khung giờ ngủ | ngủ nhiều hơn, tin đêm để sáng trả lời |
 | `sleep.timezoneOffsetMin` | múi giờ (420 = GMT+7) | — |
 | `rhythm.*` | tốc độ mất/hồi sức và độ hào hứng | xem mục dưới |
+
+## Gửi ảnh cho bot soi
+
+Bot đọc được ảnh đính kèm — gửi ảnh chụp board qua Telegram, nó tải về `data/media/` rồi đưa
+cho model xem cùng câu hỏi. Hoạt động trên **cả hai backend**:
+
+| Backend | Cách đưa ảnh vào |
+|---|---|
+| `--llm claude` | lưu file rồi đưa đường dẫn, claude-cli mở bằng Read tool (chế độ `--restricted` vẫn giữ Read — đã kiểm chứng) |
+| `--llm api` | nhúng base64 vào content block của Messages API |
+
+Thử ngay trong terminal không cần Telegram:
+
+```bash
+python -m humanbot --persona config/persona.mainboard.json
+/img anh-chup-board.jpg soi hộ em chỗ này cháy gì vậy
+```
+
+Ảnh **không** được lưu vào lịch sử hội thoại dưới dạng base64 — nếu lưu thì file phình to và
+mỗi lượt sau đều phải gửi lại cả ảnh. Lịch sử chỉ ghi `[da gui 1 anh]` kèm phần chữ.
+
+Sticker, voice, video đều bị bỏ qua. Giới hạn 8MB mỗi ảnh (`max_image_bytes`). Riêng Zalo thì
+cầu nối Node hiện chưa chuyển ảnh sang — mới chỉ có tin chữ.
+
+## Vẽ sơ đồ bằng ký tự
+
+Persona có thể vẽ chuỗi đường nguồn ngay trong tin nhắn, và chunker **giữ nguyên vẹn** khối đó:
+không gộp khoảng trắng, không cắt giữa chừng, tách thành một tin riêng.
+
+```
+BATT+ 3.9V
+   │
+  [F1] cầu chì  ── đo 2 đầu: <1Ω
+   │
+   ├──[C12]── GND   (chạm thì <5Ω)
+   │
+  [L1]
+   │
+ PP_VDD_MAIN 3.8V → PMIC U2
+```
+
+`looks_like_diagram()` nhận diện khối vẽ qua ký tự khung (`─ │ ├ └ →`) hoặc ≥2 dòng có `|`.
+Điều kiện đủ chặt để văn xuôi có dấu gạch ngang không bị nhầm là sơ đồ.
 
 ## Mô hình "tâm lý"
 

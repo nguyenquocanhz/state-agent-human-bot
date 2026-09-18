@@ -15,7 +15,7 @@ import os
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from ..util import log
 from .claude_cli import LlmReply
@@ -143,11 +143,41 @@ class AnthropicApi:
         return system + "\nKhong bao gio chen the XML noi bo vao tin nhan."
 
     # ------------------------------------------------------------- public
+    @staticmethod
+    def _image_blocks(images: Sequence[str]) -> list:
+        """Doc file anh thanh content block base64 cua Messages API."""
+        import base64
+        import mimetypes
+
+        blocks = []
+        for path in images:
+            p = Path(path)
+            if not p.exists():
+                log.warning(f"Khong thay file anh: {path}")
+                continue
+            media = mimetypes.guess_type(str(p))[0] or "image/jpeg"
+            if media not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
+                log.warning(f"Bo qua {path}: API khong nhan dinh dang {media}")
+                continue
+            blocks.append({
+                "type": "image",
+                "source": {"type": "base64", "media_type": media,
+                           "data": base64.standard_b64encode(p.read_bytes()).decode()},
+            })
+        return blocks
+
     async def complete(self, *, prompt: str, system: Optional[str] = None,
-                       session_id: Optional[str] = None) -> LlmReply:
+                       session_id: Optional[str] = None,
+                       images: Sequence[str] = ()) -> LlmReply:
         key = session_id or str(uuid.uuid4())
         messages = list(self.history.load(key))
-        messages.append({"role": "user", "content": prompt})
+
+        blocks = self._image_blocks(images) if images else []
+        if blocks:
+            # Anh truoc, cau hoi sau - model doc anh roi moi doc yeu cau.
+            messages.append({"role": "user", "content": blocks + [{"type": "text", "text": prompt}]})
+        else:
+            messages.append({"role": "user", "content": prompt})
 
         started = time.time()
         async with self._sem:
@@ -170,7 +200,18 @@ class AnthropicApi:
         # khong luu gi ca -> luot sau nhac lai tin cu, khong bi lech mach).
         if text:
             messages.append({"role": "assistant", "content": text})
-            self.history.save(key, messages)
+            # Khong luu base64 anh vao lich su: file se phinh to va moi luot sau
+            # deu phai gui lai ca anh. Thay bang mot dong ghi chu.
+            slim = []
+            for m in messages:
+                if isinstance(m.get("content"), list):
+                    texts = [b["text"] for b in m["content"] if b.get("type") == "text"]
+                    n = sum(1 for b in m["content"] if b.get("type") == "image")
+                    slim.append({"role": m["role"],
+                                 "content": f"[da gui {n} anh] " + " ".join(texts)})
+                else:
+                    slim.append(m)
+            self.history.save(key, slim)
 
         cost = estimate_cost(self.model, resp.usage)
         self.total_cost += cost

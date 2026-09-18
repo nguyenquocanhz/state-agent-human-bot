@@ -31,6 +31,7 @@ class Inbound:
     msg_id: Any = None
     at_ms: float = field(default_factory=lambda: time.time() * 1000)
     raw: Any = None
+    images: List[str] = field(default_factory=list)   # duong dan file anh dinh kem
 
 
 class _Restart(Exception):
@@ -230,8 +231,10 @@ class ConversationMachine:
         # Khong xoa _undelivered o day: lan goi nay van co the bi huy giua chung.
         prompt = build_user_turn(batch=batch, ctx=self.ctx, persona=self.persona, now_ms=now,
                                  undelivered=self._undelivered)
+        images = [path for m in batch for path in (m.images or [])]
         reply = await self.llm.complete(prompt=prompt, system=system,
-                                        session_id=self.ctx.get("sessionId"))
+                                        session_id=self.ctx.get("sessionId"),
+                                        images=images)
         if reply.session_id and reply.session_id != self.ctx.get("sessionId"):
             self.ctx["sessionId"] = reply.session_id
             self.store.set(self.conv_id, sessionId=reply.session_id)

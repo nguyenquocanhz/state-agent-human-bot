@@ -12,7 +12,8 @@ Luon dat TG_ALLOWED de gioi han doi tuong duoc tra loi.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Iterable, Optional, Set
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from telethon import TelegramClient, events
 from telethon.errors import FloodWaitError
@@ -42,10 +43,13 @@ def phone_arg(phone: Optional[str]):
 class TelethonAdapter:
     def __init__(self, *, api_id: int, api_hash: str, session: str,
                  phone: Optional[str] = None, allowed: Iterable[str] = (),
-                 allow_groups: bool = False):
+                 allow_groups: bool = False, media_dir: str = "data/media",
+                 max_image_bytes: int = 8 * 1024 * 1024):
         self.client = TelegramClient(session, api_id, api_hash)
         self.phone = phone
         self.allow_groups = allow_groups
+        self.media_dir = media_dir
+        self.max_image_bytes = max_image_bytes
         self.allowed_ids: Set[int] = set()
         self.allowed_names: Set[str] = set()
         for item in allowed:
@@ -98,13 +102,50 @@ class TelethonAdapter:
                 return
             self._peers[event.chat_id] = await event.get_input_chat()
             text = (event.raw_text or "").strip()
-            if not text:
-                # Anh/sticker/voice: chua ho tro doc noi dung -> bo qua.
-                log.debug(f"[{event.chat_id}] bo qua tin khong co chu")
+            images = await self._download_images(event)
+
+            if not text and not images:
+                # Sticker/voice/file khac: chua ho tro doc noi dung -> bo qua.
+                log.debug(f"[{event.chat_id}] bo qua tin khong co chu va khong co anh")
                 return
-            self._on_message(event.chat_id, Inbound(text=text, msg_id=event.id, raw=event))
+            if not text:
+                text = "(gui anh, khong kem chu)"
+
+            self._on_message(event.chat_id,
+                             Inbound(text=text, msg_id=event.id, raw=event, images=images))
         except Exception:
             log.exception("Loi khi nhan tin nhan")
+
+    async def _download_images(self, event) -> List[str]:
+        """Tai anh dinh kem ve dia de LLM doc duoc (vd: anh chup board).
+
+        Chi lay ANH: sticker, voice, video, file khac deu bo qua.
+        """
+        msg = event.message
+        doc = getattr(msg, "document", None)
+        is_photo = bool(getattr(msg, "photo", None))
+        is_image_doc = bool(
+            doc and (getattr(doc, "mime_type", "") or "").startswith("image/")
+            and not getattr(msg, "sticker", None))
+        if not (is_photo or is_image_doc):
+            return []
+
+        size = getattr(doc, "size", 0) or 0
+        if size > self.max_image_bytes:
+            log.info(f"[{event.chat_id}] anh {size // 1024}KB vuot gioi han, bo qua")
+            return []
+
+        folder = Path(self.media_dir) / str(event.chat_id)
+        folder.mkdir(parents=True, exist_ok=True)
+        try:
+            path = await msg.download_media(file=str(folder))
+        except Exception as e:
+            log.warning(f"[{event.chat_id}] tai anh that bai: {e}")
+            return []
+        if not path:
+            return []
+        log.info(f"[{event.chat_id}] da tai anh: {path}")
+        return [str(path)]
 
     def _hint_if_called(self, event, reason: str) -> None:
         """Bi goi ma van im lang la trieu chung kho doan nhat -> noi thang phai sua gi.

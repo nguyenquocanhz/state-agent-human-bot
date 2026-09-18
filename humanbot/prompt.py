@@ -59,6 +59,9 @@ def build_user_turn(*, batch: Sequence, ctx: dict, persona: dict, now_ms: float,
                 else "lan_dau_nhan_tin=true")
     if len(batch) > 1:
         meta.append(f"so_tin_lien_tiep={len(batch)}")
+    n_img = sum(len(getattr(m, "images", None) or []) for m in batch)
+    if n_img:
+        meta.append(f"so_anh_dinh_kem={n_img}")
 
     parts = [f"<ngu_canh>{' '.join(meta)}</ngu_canh>"]
     if undelivered:

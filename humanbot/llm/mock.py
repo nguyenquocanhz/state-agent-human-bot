@@ -11,10 +11,12 @@ class MockLlm:
         self.delay_ms = delay_ms
         self.reply = reply
         self.calls: list[str] = []
+        self.images: list[list[str]] = []
 
     async def complete(self, *, prompt: str, system: str | None = None,
-                       session_id: str | None = None) -> LlmReply:
+                       session_id: str | None = None, images=()) -> LlmReply:
         self.calls.append(prompt)
+        self.images.append(list(images))
         await asyncio.sleep(self.delay_ms / 1000.0)
         lines = [ln for ln in prompt.splitlines() if ln.strip()]
         last = lines[-1] if lines else ""
