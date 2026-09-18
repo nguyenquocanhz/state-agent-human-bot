@@ -1,0 +1,12 @@
+# Toan bo data/ bi loai tru - trong do co file .session (chiem duoc tai khoan
+# Telegram neu lo), lich su chat va state cua tung nguoi. Chi giu thu muc rong.
+data/*
+!data/.gitkeep
+
+.env
+*.log
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
