@@ -10,3 +10,7 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+
+# cau noi Zalo chay bang Node
+zalo_bridge/node_modules/
+zalo_bridge/package-lock.json

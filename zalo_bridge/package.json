@@ -1,0 +1,10 @@
+{
+  "name": "humanbot-zalo-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cau noi Zalo (tai khoan ca nhan) cho StateAgentHumanBot - noi zca-js voi tien trinh Python qua stdio",
+  "main": "bridge.mjs",
+  "engines": { "node": ">=18" },
+  "dependencies": { "zca-js": "^2" }
+}

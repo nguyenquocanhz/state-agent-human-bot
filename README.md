@@ -1,26 +1,26 @@
 # StateAgentHumanBot
 
-Chatbot Telegram nhắn tin theo **nhịp của người thật**: thấy tin rồi mới seen, seen rồi mới
-nghĩ, nghĩ xong mới gõ, gõ lâu hay mau tùy độ dài câu trả lời — và đang gõ dở mà bị nhắn
-thêm thì bỏ đó, đọc lại từ đầu.
+[![tests](https://github.com/nguyenquocanhz/state-agent-human-bot/actions/workflows/tests.yml/badge.svg)](https://github.com/nguyenquocanhz/state-agent-human-bot/actions/workflows/tests.yml)
+[![python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![telegram](https://img.shields.io/badge/Telegram-Telethon-26A5E4?logo=telegram&logoColor=white)](https://docs.telethon.dev/)
+[![zalo](https://img.shields.io/badge/Zalo-zca--js-0068FF)](https://github.com/RFS-ADRENO/zca-js)
+[![claude](https://img.shields.io/badge/LLM-Claude-D97757)](https://claude.com/)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+Chatbot nhắn tin theo **nhịp của người thật**: thấy tin rồi mới seen, seen rồi mới nghĩ,
+nghĩ xong mới gõ, gõ lâu hay mau tùy độ dài câu trả lời — và đang gõ dở mà bị nhắn thêm
+thì bỏ đó, đọc lại từ đầu. Chạy trên **Telegram** và **Zalo**.
 
 Nội dung câu trả lời do Claude sinh ra, qua **claude-cli** hoặc gọi thẳng **Messages API**.
 
-> **English**: A Telegram userbot that replies with human timing — randomized read receipts,
-> think time, typing duration proportional to message length, message splitting, typos with
-> corrections, energy/circadian rhythm and sleep hours. Powered by Claude (via the `claude`
-> CLI or the Messages API). Docs are in Vietnamese; code and config are self-explanatory.
+> **English**: A Telegram/Zalo userbot that replies with human timing — randomized read
+> receipts, think time, typing duration proportional to message length, message splitting,
+> typos with corrections, energy/circadian rhythm and sleep hours. Powered by Claude (via
+> the `claude` CLI or the Messages API). Docs are in Vietnamese; code is self-explanatory.
 
-```
-14:06:04 SEEN_DELAY  [1364926983] IDLE -> SEEN_DELAY att=AWAY energy=0.93 engage=0.61 tin=1
-14:06:14 THINKING    [1364926983] SEEN_DELAY -> THINKING ~9.5s (LLM chay song song)
-14:06:15 TYPING      [1364926983] THINKING -> TYPING doan 1/2 ~21.2s (81 ky tu)
-14:06:15 SENDING     [1364926983] TYPING -> SENDING doan 1/2
-14:06:16 TYPING      [1364926983] SENDING -> TYPING nghi 643ms truoc doan sau
-14:06:17 SENDING     [1364926983] TYPING -> SENDING doan 2/2
-14:06:17 SENDING     [1364926983] SENDING -> SENDING sua chinh ta     <- gõ sai rồi nhắn "*nhiêu"
-14:06:17 COOLDOWN    [1364926983] SENDING -> COOLDOWN tong luot 23.2s thuc te
-```
+![Demo](docs/demo.svg)
+
+*Log thật của một lượt trả lời trên Telegram — kể cả đoạn gõ sai rồi nhắn `*nhiêu` để sửa.*
 
 ## Bắt đầu trong 3 bước
 
@@ -150,11 +150,61 @@ TG_ALLOW_GROUPS=true        # trong group chỉ trả lời khi bị @mention ho
 > nhắn tới, kể cả bạn bè và khách hàng thật. Muốn vậy thật thì phải khai
 > `TG_ALLOW_EVERYONE=true`.
 
+## Chạy trên Zalo
+
+Zalo có hai đường hoàn toàn khác nhau, và chúng **không tương đương**:
+
+| | `--adapter zalo` (tài khoản cá nhân) | `--adapter zalo-oa` (Official Account) |
+|---|---|---|
+| Ai dùng được | ai cũng được | phải có doanh nghiệp đăng ký OA |
+| Đánh dấu **đã xem** | ✅ `sendSeenEvent` | ❌ không có API |
+| **Đang soạn tin** | ✅ `sendTypingEvent` | ❌ không có API |
+| Chính thức | ❌ giả lập Zalo Web | ✅ OpenAPI chính thức |
+| Rủi ro khoá nick | **cao** | không |
+
+Nói thẳng: trên **OA** thì hai trong ba tín hiệu của dự án này biến mất, chỉ còn độ trễ và
+tách tin. Muốn giống người thật đầy đủ thì phải dùng tài khoản cá nhân, đổi lại là rủi ro.
+
+### Tài khoản cá nhân
+
+Zalo không có API chính thức cho tài khoản cá nhân, và thư viện Python duy nhất (`zlapi`)
+**đã bị archive từ 11/2024**. Thư viện còn sống là [`zca-js`](https://github.com/RFS-ADRENO/zca-js)
+(TypeScript). Nên phần nói chuyện với Zalo chạy bằng Node, còn máy trạng thái vẫn là Python —
+hai bên nói qua stdio, mỗi dòng một JSON (`zalo_bridge/bridge.mjs`).
+
+```bash
+cd zalo_bridge && npm install && cd ..
+python -m humanbot --adapter zalo
+```
+
+Lần đầu nó lưu mã QR vào `data/zalo-qr.png` — mở ảnh đó, quét bằng Zalo trên điện thoại. Xong
+phiên đăng nhập được lưu vào `data/zalo-credentials.json`, lần sau không cần quét lại.
+
+Điền người được phép vào `.env` (`ZALO_ALLOWED=`, không điền thì bot không chạy). Chưa biết id
+thì cứ chạy thử với `--log-level debug`, log sẽ in id của người nhắn tới.
+
+> ⚠️ `zca-js` giả lập trình duyệt, trái điều khoản Zalo và **có thể làm khoá tài khoản**. Rủi
+> ro cao hơn Telegram đáng kể — Telegram công khai API và cho phép client thứ ba, Zalo thì
+> không. Dùng nick phụ, đừng dùng nick chính.
+>
+> Cũng lưu ý: Zalo Web chỉ cho **một listener chạy mỗi lúc** — mở Zalo trên trình duyệt là
+> bot bị ngắt kết nối.
+
+### Official Account
+
+```bash
+ZALO_OA_ACCESS_TOKEN=... python -m humanbot --adapter zalo-oa
+```
+
+Chạy webhook server ở `PORT` (mặc định 8080), cần URL public để Zalo gọi vào (ngrok,
+Cloudflare Tunnel...). Endpoint gửi tin lấy theo tài liệu cộng đồng — nếu Zalo đổi thì sửa
+`ZALO_API_BASE` / `ZALO_TOKEN_HEADER` trong `.env`, không phải sửa code.
+
 ## Các cờ hay dùng
 
 | Cờ | Ý nghĩa |
 |---|---|
-| `--adapter console\|telegram` | kênh chat (mặc định `console`) |
+| `--adapter console\|telegram\|zalo\|zalo-oa` | kênh chat (mặc định `console`) |
 | `--llm claude\|api\|mock` | backend sinh câu trả lời |
 | `--persona <file.json>` | đổi tính cách |
 | `--time-scale 0.2` | rút gọn mọi độ trễ để demo/debug |
@@ -207,7 +257,12 @@ humanbot/
   clock.py             đồng hồ tăng tốc được (time_scale)
   llm/claude_cli.py    gọi claude -p --output-format json, tự --resume theo hội thoại
   llm/anthropic_api.py gọi thẳng Messages API, tự giữ lịch sử + tính tiền từng lượt
-  adapters/            telethon_adapter.py (thật) · console.py (thử) · base.py (giao diện)
+  adapters/telethon_adapter.py   Telegram qua Telethon (tài khoản thật)
+  adapters/zalo_adapter.py       Zalo cá nhân, qua cầu nối Node
+  adapters/zalo_oa_adapter.py    Zalo Official Account (webhook + OpenAPI)
+  adapters/console.py            chat thử trong terminal
+  adapters/base.py               giao diện 4 hàm cho adapter mới
+zalo_bridge/bridge.mjs   cầu nối Node <-> Python cho Zalo cá nhân (zca-js)
 tools/setup.py         trợ lý tạo .env
 tools/tg_login.py      đăng nhập Telegram + lấy id để whitelist
 tools/cost_compare.py  so chi phí hai backend
@@ -222,14 +277,28 @@ Thêm kênh chat mới (Messenger, Zalo, Discord...) = viết thêm một adapte
 python -m unittest discover -s tests -v
 ```
 
-49 test, chạy ~4 giây, dùng `MockLlm` + đồng hồ tăng tốc nên không gọi API và không tốn tiền.
+58 test, chạy ~4 giây, dùng `MockLlm` + đồng hồ tăng tốc nên không gọi API và không tốn tiền.
 Phủ: biên độ trễ, tách đoạn không cắt code block, vòng đời state machine (kể cả ngắt giữa
-chừng), backend API, và bộ lọc "ai được bot trả lời".
+chừng), backend API, bộ lọc "ai được bot trả lời", và giao thức hai adapter Zalo.
 
 ## Yêu cầu
 
 - Python 3.10+ (đã chạy trên 3.14)
 - `pip install -r requirements.txt` — Telethon; `anthropic` chỉ cần nếu dùng `--llm api`
 - Claude Code CLI nếu dùng `--llm claude` (`claude --version` để kiểm tra)
+- Node 18+ nếu dùng `--adapter zalo` (cầu nối chạy `zca-js`)
+
+## Trạng thái kiểm chứng
+
+Không phải phần nào cũng được chạy thật như nhau — nói rõ để bạn khỏi mất thời gian:
+
+| Phần | Trạng thái |
+|---|---|
+| Máy trạng thái, humanizer, chunker, typo | đã chạy thật + 58 test |
+| Telegram (Telethon) | **đã chạy thật** trên tài khoản thật, seen/typing/tách tin đều đúng |
+| Backend claude-cli | **đã chạy thật**, số chi phí trong README là đo được |
+| Backend Messages API | logic có test với client giả, **chưa gọi mạng thật** |
+| Zalo cá nhân (zca-js) | zca-js 2.2.0 đã cài + xác nhận có đủ hàm cần; **chưa đăng nhập thật** |
+| Zalo OA | hình dạng request lấy từ tài liệu cộng đồng, **chưa chạy với token thật** |
 
 MIT License.

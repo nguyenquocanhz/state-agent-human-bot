@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="410" viewBox="0 0 900 410" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
+<rect width="900" height="410" rx="10" fill="#0d1117" stroke="#30363d"/>
+<rect width="900" height="36" rx="10" fill="#161b22"/>
+<rect y="26" width="900" height="10" fill="#161b22"/>
+<line x1="0" y1="36" x2="900" y2="36" stroke="#30363d"/>
+<circle cx="20" cy="18" r="6" fill="#ff5f56"/>
+<circle cx="38" cy="18" r="6" fill="#ffbd2e"/>
+<circle cx="56" cy="18" r="6" fill="#27c93f"/>
+<text x="450.0" y="22" fill="#8b949e" text-anchor="middle" font-size="12">StateAgentHumanBot</text>
+<text x="177" y="56.0" fill="#e6edf3">$ python -m humanbot --adapter telegram --log-level debug</text>
+<text x="18" y="98.0" fill="#6e7681">14:05:54</text>
+<text x="86" y="98.0" fill="#6e7681" font-weight="bold">info</text>
+<text x="177" y="98.0" fill="#8b949e">[1364926983] &lt;&lt; chao shop, minh can hosting cho web ban hang nho</text>
+<text x="18" y="119.0" fill="#6e7681">14:05:54</text>
+<text x="86" y="119.0" fill="#58a6ff" font-weight="bold">SEEN_DELAY</text>
+<text x="177" y="119.0" fill="#8b949e">IDLE -&gt; SEEN_DELAY   att=AWAY energy=0.93 engage=0.61</text>
+<text x="18" y="140.0" fill="#6e7681">14:06:04</text>
+<text x="177" y="140.0" fill="#6e7681">    da mark read sau 9.7s</text>
+<text x="18" y="161.0" fill="#6e7681">14:06:04</text>
+<text x="86" y="161.0" fill="#bc8cff" font-weight="bold">THINKING</text>
+<text x="177" y="161.0" fill="#8b949e">SEEN_DELAY -&gt; THINKING   ~9.5s (LLM chay song song)</text>
+<text x="18" y="182.0" fill="#6e7681">14:06:14</text>
+<text x="86" y="182.0" fill="#39c5cf" font-weight="bold">TYPING</text>
+<text x="177" y="182.0" fill="#8b949e">THINKING -&gt; TYPING   doan 1/2 ~21.2s (81 ky tu)</text>
+<text x="18" y="203.0" fill="#6e7681">14:06:15</text>
+<text x="86" y="203.0" fill="#3fb950" font-weight="bold">SENDING</text>
+<text x="177" y="203.0" fill="#8b949e">TYPING -&gt; SENDING   doan 1/2</text>
+<text x="177" y="224.0" fill="#7ee787">   Chao ban, Linh day a. Web ban hang nho thi ben minh co goi hosting hop ly lam ne.</text>
+<text x="18" y="245.0" fill="#6e7681">14:06:15</text>
+<text x="86" y="245.0" fill="#39c5cf" font-weight="bold">TYPING</text>
+<text x="177" y="245.0" fill="#8b949e">SENDING -&gt; TYPING   nghi 643ms truoc doan sau</text>
+<text x="18" y="266.0" fill="#6e7681">14:06:17</text>
+<text x="86" y="266.0" fill="#3fb950" font-weight="bold">SENDING</text>
+<text x="177" y="266.0" fill="#8b949e">TYPING -&gt; SENDING   doan 2/2</text>
+<text x="177" y="287.0" fill="#7ee787">   Ban cho Linh biet web dang dung nen tang gi khong, traffic thang khoang bao nheu?</text>
+<text x="18" y="308.0" fill="#6e7681">14:06:17</text>
+<text x="86" y="308.0" fill="#3fb950" font-weight="bold">SENDING</text>
+<text x="177" y="308.0" fill="#8b949e">SENDING -&gt; SENDING   sua chinh ta</text>
+<text x="177" y="329.0" fill="#7ee787">   *nhieu</text>
+<text x="18" y="350.0" fill="#6e7681">14:06:17</text>
+<text x="86" y="350.0" fill="#d29922" font-weight="bold">COOLDOWN</text>
+<text x="177" y="350.0" fill="#8b949e">SENDING -&gt; COOLDOWN   tong luot 23.2s thuc te</text>
+<text x="18" y="371.0" fill="#6e7681">14:06:18</text>
+<text x="86" y="371.0" fill="#6e7681" font-weight="bold">IDLE</text>
+<text x="177" y="371.0" fill="#8b949e">COOLDOWN -&gt; IDLE</text>
+</svg>

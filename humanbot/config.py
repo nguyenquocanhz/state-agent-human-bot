@@ -50,9 +50,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="humanbot",
         description="Chatbot mo phong nhip nhan tin cua nguoi that (Telethon + claude-cli)")
-    p.add_argument("--adapter", choices=("telegram", "console"),
+    p.add_argument("--adapter", choices=("telegram", "zalo", "zalo-oa", "console"),
                    default=os.environ.get("ADAPTER", "console"),
-                   help="kenh chat (mac dinh: console de thu)")
+                   help="kenh chat: telegram (Telethon) | zalo (tai khoan ca nhan, qua "
+                        "cau noi Node) | zalo-oa (Official Account) | console (thu)")
     p.add_argument("--llm", choices=("claude", "api", "mock"),
                    default=os.environ.get("LLM", "claude"),
                    help="claude = qua claude-cli (nho lich su ho, dat hon); "
@@ -76,6 +77,39 @@ def build_adapter(args: argparse.Namespace, persona: dict) -> Any:
     if args.adapter == "console":
         from .adapters.console import ConsoleAdapter
         return ConsoleAdapter(persona_name=persona.get("name", "Bot"))
+
+    if args.adapter == "zalo":
+        from .adapters.zalo_adapter import ZaloAdapter
+        allowed = [s for s in os.environ.get("ZALO_ALLOWED", "").split(",") if s.strip()]
+        if not allowed and not env_bool("ZALO_ALLOW_EVERYONE"):
+            raise SystemExit(
+                "ZALO_ALLOWED dang trong -> bot se tra loi MOI NGUOI nhan toi nick nay.\n"
+                "Dien id nguoi duoc phep vao .env, hoac dat ZALO_ALLOW_EVERYONE=true.\n"
+                "Chua biet id thi cu chay thu, log se in id cua nguoi nhan toi.")
+        return ZaloAdapter(
+            bridge_dir=os.environ.get("ZALO_BRIDGE_DIR", "zalo_bridge"),
+            node_bin=os.environ.get("NODE_BIN", "node"),
+            allowed=allowed,
+            allow_groups=env_bool("ZALO_ALLOW_GROUPS"),
+        )
+
+    if args.adapter == "zalo-oa":
+        from .adapters.zalo_oa_adapter import ZaloAdapter as ZaloOaAdapter
+        token = os.environ.get("ZALO_OA_ACCESS_TOKEN")
+        if not token:
+            raise SystemExit(
+                "Thieu ZALO_OA_ACCESS_TOKEN.\n"
+                "Adapter nay danh cho Official Account (can doanh nghiep dang ky).\n"
+                "Tai khoan ca nhan thi dung --adapter zalo.")
+        return ZaloOaAdapter(
+            access_token=token,
+            port=int(os.environ.get("PORT", "8080")),
+            path=os.environ.get("ZALO_WEBHOOK_PATH", "/webhook"),
+            allowed=[s for s in os.environ.get("ZALO_ALLOWED", "").split(",") if s.strip()],
+            app_secret=os.environ.get("ZALO_APP_SECRET") or None,
+            app_id=os.environ.get("ZALO_APP_ID") or None,
+            verify_signature=env_bool("ZALO_VERIFY_SIGNATURE"),
+        )
 
     from .adapters.telethon_adapter import TelethonAdapter
     api_id = os.environ.get("TG_API_ID")
