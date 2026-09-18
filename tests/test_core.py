@@ -5,6 +5,7 @@ Chay:  python -m unittest discover -s tests -v
 from __future__ import annotations
 
 import asyncio
+import re
 import sys
 import unittest
 from datetime import datetime, timezone
@@ -248,3 +249,60 @@ class MachineTest(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class SystemPromptTest(unittest.TestCase):
+    """Persona co the mang kien thuc chuyen mon va tu dat luat dinh dang rieng."""
+
+    def test_expertise_block_appears(self):
+        from humanbot.prompt import build_system_prompt
+        p = {**PERSONA, "expertise": ["do dong tieu thu truoc khi doan benh"]}
+        out = build_system_prompt(p)
+        self.assertIn("Chuyen mon", out)
+        self.assertIn("do dong tieu thu truoc khi doan benh", out)
+
+    def test_no_expertise_block_when_absent(self):
+        from humanbot.prompt import build_system_prompt
+        self.assertNotIn("Chuyen mon", build_system_prompt(PERSONA))
+
+    def test_persona_rules_replace_defaults(self):
+        from humanbot.prompt import DEFAULT_RULES, build_system_prompt
+        p = {**PERSONA, "rules": ["Duoc phep danh so buoc 1. 2. 3."]}
+        out = build_system_prompt(p)
+        self.assertIn("Duoc phep danh so buoc", out)
+        self.assertNotIn(DEFAULT_RULES[2], out)   # luat "khong bullet" bi thay the
+
+    def test_default_rules_used_when_persona_has_none(self):
+        from humanbot.prompt import DEFAULT_RULES, build_system_prompt
+        self.assertIn(DEFAULT_RULES[3], build_system_prompt(PERSONA))
+
+    def test_every_shipped_persona_builds(self):
+        from humanbot.prompt import build_system_prompt
+        files = sorted(Path("config").glob("persona.*.json"))
+        self.assertGreaterEqual(len(files), 4)
+        for f in files:
+            out = build_system_prompt(load_persona(str(f)))
+            self.assertIn("Ban dang dong vai", out, f"{f.name} khong rap duoc prompt")
+
+
+class NumberedStepsTest(unittest.TestCase):
+    """Loi that gap khi chay: tin nhan bi ket thuc bang mot so lo loi kieu '2.'"""
+
+    REPLY = ("May hoi vai thong tin da. 1. May co bi roi hay vao nuoc khong? "
+             "2. Hien tuong la mat han khong len gi, hay co logo roi tat? "
+             "3. Da do dong tieu thu chua, duoc bao nhieu mA?")
+
+    def test_chunk_never_ends_with_a_bare_list_marker(self):
+        for seed in range(30):
+            chunks = chunk_reply(self.REPLY, persona=PERSONA, rng=Rng(seed))
+            for c in chunks:
+                self.assertIsNone(re.search(r"\b\d+\.$", c.strip()),
+                                  f"seed {seed}: tin ket thuc bang so lo loi -> {c!r}")
+
+    def test_steps_stay_with_their_content(self):
+        chunks = chunk_reply(self.REPLY, persona=PERSONA, rng=Rng(7))
+        joined = " ".join(chunks)
+        for n in ("1.", "2.", "3."):
+            i = joined.index(n)
+            self.assertGreater(len(joined[i + 2:].strip()), 10,
+                               f"buoc {n} khong con noi dung di kem")

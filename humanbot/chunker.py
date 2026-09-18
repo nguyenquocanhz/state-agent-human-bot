@@ -11,7 +11,10 @@ from typing import List
 from .rng import Rng
 
 _FENCE = re.compile(r"```[\s\S]*?```")
-_SENTENCE = re.compile(r"(?<=[.!?…])\s+|\n+")
+#: Cat o cuoi cau. `(?<!\d\.)` soi NGUOC HAI KY TU de khong cat sau "1." "2."
+#: cua danh sach danh so - cat o do thi tin nhan ket thuc bang mot so lo loi
+#: con noi dung cua buoc lai roi sang tin sau.
+_SENTENCE = re.compile(r"(?<=[.!?…])(?<!\d\.)\s+|\n+")
 
 
 def split_fences(text: str) -> List[dict]:

@@ -66,13 +66,26 @@ Ba bản mẫu có sẵn để tham khảo cách chỉnh:
 | `persona.default.json` | An | trợ lý trung tính, ngắn gọn |
 | `persona.sales.json` | Linh | tư vấn bán hàng, thân mật, hay hỏi lại |
 | `persona.friend.json` | Mint | bạn thân, gõ nhanh 58 wpm, sai chính tả nhiều, thức tới 2h sáng |
+| `persona.mainboard.json` | Tú | thợ sửa main 15 năm — ví dụ persona **có chuyên môn thật** |
 
 Phần nội dung — quyết định bot **nói gì**:
 
 ```jsonc
 "name": "An",
 "bio":  "Tro ly ca nhan, tra loi ngan gon va thang vao van de.",
-"style": [ "mỗi dòng là một luật được đưa vào system prompt" ]
+"expertise": [ "kiến thức + quy trình nghề — phần làm nên chất lượng câu trả lời" ],
+"style":     [ "giọng điệu, cách xưng hô, cách nhắn" ],
+"rules":     [ "luật định dạng, thay thế bộ mặc định nếu persona cần khác" ]
+```
+
+`expertise` và `rules` là tùy chọn. Persona tám phào thì bỏ trống cả hai — nhưng persona làm
+việc thật thì `expertise` chính là chỗ đáng đầu tư nhất, còn `rules` để gỡ các luật mặc định
+không hợp (ví dụ luật "không bullet" sai với thợ cần liệt kê từng bước đo).
+
+Xem prompt cuối cùng mà một persona sinh ra:
+
+```bash
+python tools/show_prompt.py config/persona.mainboard.json
 ```
 
 Phần nhịp — quyết định bot **nhắn như thế nào**:
@@ -264,6 +277,7 @@ humanbot/
   adapters/base.py               giao diện 4 hàm cho adapter mới
 zalo_bridge/bridge.mjs   cầu nối Node <-> Python cho Zalo cá nhân (zca-js)
 tools/setup.py         trợ lý tạo .env
+tools/show_prompt.py   in ra system prompt của một persona
 tools/tg_login.py      đăng nhập Telegram + lấy id để whitelist
 tools/cost_compare.py  so chi phí hai backend
 ```
@@ -277,7 +291,7 @@ Thêm kênh chat mới (Messenger, Zalo, Discord...) = viết thêm một adapte
 python -m unittest discover -s tests -v
 ```
 
-58 test, chạy ~4 giây, dùng `MockLlm` + đồng hồ tăng tốc nên không gọi API và không tốn tiền.
+63 test, chạy ~4 giây, dùng `MockLlm` + đồng hồ tăng tốc nên không gọi API và không tốn tiền.
 Phủ: biên độ trễ, tách đoạn không cắt code block, vòng đời state machine (kể cả ngắt giữa
 chừng), backend API, bộ lọc "ai được bot trả lời", và giao thức hai adapter Zalo.
 

@@ -7,21 +7,41 @@ from .humanizer import local_parts
 from .util import fmt_ms
 
 
+#: Luat mac dinh, hop cho persona tam phao. Persona co the thay bang khoa "rules".
+DEFAULT_RULES = [
+    "Tra loi bang dung ngon ngu ma doi phuong dang dung.",
+    "Khi can gui nhieu tin lien tiep, ngan cach chung bang MOT DONG TRONG."
+    " Moi doan la mot tin nhan rieng.",
+    "Khong mo ta hanh dong, khong tieu de, khong bullet, khong markdown trang trong.",
+    "Neu khong biet thi noi khong biet, dung bia.",
+]
+
+
 def build_system_prompt(persona: dict) -> str:
-    style = "\n".join("- " + s for s in persona.get("style", []))
-    return "\n".join([
-        f"Ban dang dong vai {persona['name']}. {persona.get('bio', '')}".strip(),
-        "",
-        "Cach nhan tin:",
-        style,
-        "- Tra loi bang dung ngon ngu ma doi phuong dang dung.",
-        "- Khi can gui nhieu tin lien tiep, ngan cach chung bang MOT DONG TRONG."
-        " Moi doan la mot tin nhan rieng.",
-        "- Khong mo ta hanh dong, khong tieu de, khong bullet, khong markdown trang trong.",
-        "- Neu khong biet thi noi khong biet, dung bia.",
-        "",
-        "Chi xuat ra noi dung tin nhan, khong giai thich gi them.",
-    ])
+    """Rap system prompt tu persona.
+
+    Cac khoa dung o day (tat ca deu tuy chon tru `name`):
+        bio        mot cau gioi thieu nhan vat
+        expertise  kien thuc/quy trinh chuyen mon - phan nay lam nen chat luong
+                   cau tra loi, persona tam phao thi bo trong
+        style      giong dieu, cach nhan tin
+        rules      thay the DEFAULT_RULES khi persona can dinh dang khac
+                   (vi du tho sua chua can liet ke tung buoc do)
+    """
+    parts = [f"Ban dang dong vai {persona['name']}. {persona.get('bio', '')}".strip()]
+
+    if persona.get("expertise"):
+        parts += ["", "Chuyen mon va cach lam viec:"]
+        parts += ["- " + e for e in persona["expertise"]]
+
+    if persona.get("style"):
+        parts += ["", "Cach nhan tin:"]
+        parts += ["- " + s for s in persona["style"]]
+
+    rules = persona.get("rules") or DEFAULT_RULES
+    parts += ["", "Quy tac bat buoc:"] + ["- " + r for r in rules]
+    parts += ["", "Chi xuat ra noi dung tin nhan, khong giai thich gi them."]
+    return "\n".join(parts)
 
 
 def build_user_turn(*, batch: Sequence, ctx: dict, persona: dict, now_ms: float,
